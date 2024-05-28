@@ -1,48 +1,47 @@
-import { fetchBreeds, fetchCatByBreed } from './cat-api';
-import Notiflix from 'notiflix';
-
-const breedSelect = document.querySelector('.breed-select');
-const catInfo = document.querySelector('.cat-info');
-const loader = document.querySelector('.loader');
-const error = document.querySelector('.error');
-
-loader.style.display = 'none';
-error.style.display = 'none';
-
-fetchBreeds()
-  .then(breeds => {
-    breeds.forEach(breed => {
-      const listOption = document.createElement('option');
-      listOption.textContent = breed.name;
-      listOption.value = breed.id;
-      breedSelect.append(listOption);
-    });
-  })
-  .catch(error => {
-    loader.style.display = 'none';
-    error.style.display = 'block';
-    Notiflix.Notify.failure(error.textContent);
-  });
-
-breedSelect.addEventListener('change', function () {
-  loader.style.display = 'block';
+import { fetchBreeds, fetchCatByBreed } from './cat-api.js';
+document.addEventListener('DOMContentLoaded', async () => {
+  const breedSelect = document.querySelector('.breed-select');
+  const loader = document.querySelector('.loader');
+  const error = document.querySelector('.error');
+  const catInfo = document.querySelector('.cat-info');
+  loader.style.display = 'none';
   error.style.display = 'none';
-  catInfo.style.display = 'none';
-  const breedId = breedSelect.value;
-  fetchCatByBreed(breedId)
-    .then(catDetails => {
-      loader.style.display = 'none';
-      catInfo.style.display = 'flex';
-      catInfo.style.gap = '25px';
-      catInfo.style.marginTop = '25px';
-      catInfo.innerHTML = `<img src=${catDetails[0].url}  width="300px" alt="The ${catDetails[0].breeds[0].name} cat">
-      <div><h1 class="catBreed">${catDetails[0].breeds[0].name}  </h1>
-      <p>${catDetails[0].breeds[0].description}  </p>
-      <h5>Temperament: ${catDetails[0].breeds[0].temperament}  </h5></div>
-      `;
-    })
-    .catch(error => {
-      loader.style.display = 'none';
-      Notiflix.Notify.failure(error.textContent);
+  try {
+    // Fetch breeds
+    const breeds = await fetchBreeds();
+    breeds.forEach(breed => {
+      const option = document.createElement('option');
+      option.value = breed.id;
+      option.textContent = breed.name;
+      breedSelect.appendChild(option);
     });
+    breedSelect.addEventListener('change', async event => {
+      const selectedBreedId = event.target.value;
+      loader.style.display = 'block';
+      error.style.display = 'none';
+      catInfo.style.display = 'none';
+      try {
+        // Fetch cat by breed
+        const catData = await fetchCatByBreed(selectedBreedId);
+        const cat = catData[0];
+        catInfo.innerHTML = `
+          <img src="${cat.url}" alt="Cat Image">
+          <p><strong>Breed:</strong> ${cat.breeds[0].name}</p>
+          <p><strong>Description:</strong> ${cat.breeds[0].description}</p>
+          <p><strong>Temperament:</strong> ${cat.breeds[0].temperament}</p>
+        `;
+        loader.style.display = 'none';
+        catInfo.style.display = 'block';
+      } catch (err) {
+        // Handle error
+        error.style.display = 'block';
+        loader.style.display = 'none';
+        console.error(err);
+      }
+    });
+  } catch (err) {
+    // Handle error
+    error.style.display = 'block';
+    console.error(err);
+  }
 });
